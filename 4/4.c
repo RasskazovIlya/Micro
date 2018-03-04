@@ -1,9 +1,9 @@
 #include "stm32f10x.h"
 
 #define PRESCALER_PWM 960
-#define PERIOD_PWM 25000
+#define PERIOD_PWM 15000
 #define PULSE_PWM 0
-#define COUNTER 12500
+#define COUNTER 5000
 
 GPIO_InitTypeDef GPIO_LED;
 TIM_TimeBaseInitTypeDef Tim;
