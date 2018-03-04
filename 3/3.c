@@ -5,6 +5,7 @@
 #define    SCB_DEMCR     *(volatile unsigned long *)0xE000EDFC
 
 uint32_t count_tic = 0;
+uint32_t freq;
 volatile uint16_t cntr = 0;
 
 void SysTick_Handler(void)
@@ -40,14 +41,15 @@ int main(void)
 	while(1) 
 	{
 		GPIO_SetBits(GPIOC, GPIO_Pin_8);
-		delay_ms(1000);
-		
-		count_tic =  DWT_CYCCNT;
-		DWT_CONTROL &= ~DWT_CTRL_CYCCNTENA_Msk; 
-		DWT_CYCCNT  = 0;
+		delay_ms(500);
 		
 		GPIO_ResetBits(GPIOC, GPIO_Pin_8);
-		delay_ms(1000);
+		delay_ms(500);
+		
+		count_tic =  DWT_CYCCNT;
+		freq = SystemCoreClock/DWT_CYCCNT;
+		DWT_CONTROL &= ~DWT_CTRL_CYCCNTENA_Msk; 
+		DWT_CYCCNT  = 0;
 
 		/*GPIO_SetBits(GPIOC, GPIO_Pin_9);
 		delay_ms(1000);
