@@ -1,14 +1,14 @@
 #include "stm32f10x.h"
 
 #define PRESCALER_PWM 960 //предделитель таймера
-#define PERIOD_PWM 17500 //период ШИМ
-#define PULSE_PWM 0 //скважность ШИМ
+#define PERIOD_PWM 20000 //период ШИМ
+#define PULSE_PWM 5000 //скважность ШИМ
 
 GPIO_InitTypeDef GPIO_LED; 
 TIM_TimeBaseInitTypeDef Tim;
 TIM_OCInitTypeDef TimPWM;
 
-uint32_t delay_count=0;
+uint32_t delay_count = 0;
 
 void initALL(void); //включаем всё
 void initTACT(void); //включаем тактирование
@@ -29,27 +29,17 @@ int main(void)
 	
 	RCC_ClocksTypeDef clocks;
 	RCC_GetClocksFreq(&clocks);
-	freq = clocks.PCLK1_Frequency/PRESCALER_PWM; //определяем частоту ШИМ
+	freq = clocks.PCLK1_Frequency/PRESCALER_PWM; //определяем частоту ШИМ (24000000/960 = 25000 Гц = 25 кГц)
 	
 	while(1)
 	{
-		for (i = PULSE_PWM; i < PERIOD_PWM-1; i++)
+		for (i = PULSE_PWM; i < PERIOD_PWM - 1; i++)
 		{
-			if (i < (PERIOD_PWM/2))
-				{
-					TIM_SetCompare3(TIM3, i); // яркость увеличивается
-				}
-			else if (PULSE_PWM > PERIOD_PWM)
-			{
-				if (i > PULSE_PWM && i < (PERIOD_PWM-1))
-				{
-					TIM_SetCompare3(TIM3, (PERIOD_PWM - i - 1)); // яркость уменьшается
-				}
-			}
-			else if (i > (PERIOD_PWM/2) && i < (PERIOD_PWM-1))
-			{
+			if (i < PERIOD_PWM/2)
+				TIM_SetCompare3(TIM3, i); // яркость увеличивается
+			else if (i > (PERIOD_PWM/2) && i < (PERIOD_PWM - 1))
 				TIM_SetCompare3(TIM3, (PERIOD_PWM - i - 1)); // яркость уменьшается
-			}
+			//delay_ms(10);
 		}
 		//-----------
 		// Затухание светодиода
@@ -71,7 +61,7 @@ void initALL()
 	//включаем 8 ножку на GPIOC в альтернативном режиме
 	GPIO_StructInit(&GPIO_LED);
 	GPIO_LED.GPIO_Mode = GPIO_Mode_AF_PP;
-	GPIO_LED.GPIO_Pin = GPIO_Pin_8 | GPIO_Pin_9;
+	GPIO_LED.GPIO_Pin = GPIO_Pin_8;
 	GPIO_LED.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOC, &GPIO_LED);
 	
@@ -83,7 +73,7 @@ void initALL()
 	Tim.TIM_ClockDivision = TIM_CKD_DIV1;
 	Tim.TIM_CounterMode = TIM_CounterMode_Up;
 	Tim.TIM_Prescaler = PRESCALER_PWM - 1;
-	Tim.TIM_Period = PERIOD_PWM - 1;
+	Tim.TIM_Period = PERIOD_PWM;
 	TIM_TimeBaseInit(TIM3, &Tim);
 	
 	//настраиваем генерацию ШИМ на таймере
@@ -93,7 +83,6 @@ void initALL()
 	TimPWM.TIM_OutputState = TIM_OutputState_Enable;
 	TimPWM.TIM_OCPolarity = TIM_OCPolarity_High;
 	TIM_OC3Init(TIM3, &TimPWM);
-	TIM_OC4Init(TIM3, &TimPWM);
 	
 	//включаем таймер
 	TIM_Cmd(TIM3, ENABLE);
