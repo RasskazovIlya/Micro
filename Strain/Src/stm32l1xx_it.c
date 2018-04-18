@@ -41,6 +41,7 @@
 
 /* External variables --------------------------------------------------------*/
 extern SPI_HandleTypeDef hspi1;
+extern UART_HandleTypeDef huart1;
 
 /******************************************************************************/
 /*            Cortex-M3 Processor Interruption and Exception Handlers         */ 
@@ -206,17 +207,80 @@ void RCC_IRQHandler(void)
 }
 
 /**
+* @brief This function handles EXTI line2 interrupt.
+*/
+void EXTI2_IRQHandler(void)
+{
+  /* USER CODE BEGIN EXTI2_IRQn 0 */
+	uint8_t wreg = 0x50, data = 0x00, byte1 = 0x00, rdata = 0x01, standby = 0xFF, buf, sync = 0xFC, wakeup = 0x00;
+  /* USER CODE END EXTI2_IRQn 0 */
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_2);
+  /* USER CODE BEGIN EXTI2_IRQn 1 */
+
+	HAL_SPI_Transmit_IT(&hspi1, &sync, 1); //SYNC
+	HAL_SPI_Transmit_IT(&hspi1, &wakeup, 1); //WAKE UP
+	
+	HAL_SPI_Transmit_IT(&hspi1, &wreg, 1); //WREG DRATE first byte
+	HAL_SPI_Transmit_IT(&hspi1, &byte1, 1); //WREG DRATE second byte
+	data = 0xF0;
+	HAL_SPI_Transmit_IT(&hspi1, &data, 1); //WREG DRATE third byte
+	
+	for (int i = 0; i < 4; i++)
+	{
+		HAL_SPI_Transmit_IT(&hspi1, &wreg, 1); //WREG MUX channels first byte
+		HAL_SPI_Transmit_IT(&hspi1, &byte1, 1); //WREG MUX channels second byte
+		data = 0x01 + i*0x11;
+		HAL_SPI_Transmit_IT(&hspi1, &data, 1); //WREG MUX channels third byte
+		
+		HAL_SPI_Transmit_IT(&hspi1, &sync, 1); //SYNC
+		HAL_SPI_Transmit_IT(&hspi1, &wakeup, 1); //WAKE UP
+		
+		HAL_SPI_Transmit_IT(&hspi1, &buf, 1); //RDATA
+	}
+	HAL_SPI_Transmit_IT(&hspi1, &standby, 1); //STAND BY
+  /* USER CODE END EXTI2_IRQn 1 */
+}
+
+/**
+* @brief This function handles EXTI line4 interrupt.
+*/
+void EXTI4_IRQHandler(void)
+{
+  /* USER CODE BEGIN EXTI4_IRQn 0 */
+
+  /* USER CODE END EXTI4_IRQn 0 */
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_4);
+  /* USER CODE BEGIN EXTI4_IRQn 1 */
+
+  /* USER CODE END EXTI4_IRQn 1 */
+}
+
+/**
 * @brief This function handles SPI1 global interrupt.
 */
 void SPI1_IRQHandler(void)
 {
   /* USER CODE BEGIN SPI1_IRQn 0 */
-
+	uint8_t data[3];
   /* USER CODE END SPI1_IRQn 0 */
   HAL_SPI_IRQHandler(&hspi1);
   /* USER CODE BEGIN SPI1_IRQn 1 */
-
+	HAL_SPI_Receive_IT(&hspi1, data, 3); //recieve data from ADC
   /* USER CODE END SPI1_IRQn 1 */
+}
+
+/**
+* @brief This function handles USART1 global interrupt.
+*/
+void USART1_IRQHandler(void)
+{
+  /* USER CODE BEGIN USART1_IRQn 0 */
+	uint8_t data[3];
+  /* USER CODE END USART1_IRQn 0 */
+  HAL_UART_IRQHandler(&huart1);
+  /* USER CODE BEGIN USART1_IRQn 1 */
+	HAL_UART_Receive_IT(&huart1, data, 3);
+  /* USER CODE END USART1_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */
