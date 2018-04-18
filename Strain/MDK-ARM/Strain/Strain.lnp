@@ -1,0 +1,26 @@
+--cpu Cortex-M3
+"strain\startup_stm32l100xb.o"
+"strain\stm32l1xx_hal_spi.o"
+"strain\stm32l1xx_hal_pwr.o"
+"strain\stm32l1xx_hal_pwr_ex.o"
+"strain\stm32l1xx_hal_uart.o"
+"strain\stm32l1xx_hal_flash_ex.o"
+"strain\stm32l1xx_hal_cortex.o"
+"strain\stm32l1xx_hal_rcc.o"
+"strain\stm32l1xx_hal_spi_ex.o"
+"strain\stm32l1xx_hal.o"
+"strain\stm32l1xx_hal_tim_ex.o"
+"strain\stm32l1xx_hal_dma.o"
+"strain\stm32l1xx_hal_flash_ramfunc.o"
+"strain\stm32l1xx_hal_flash.o"
+"strain\stm32l1xx_hal_gpio.o"
+"strain\stm32l1xx_hal_tim.o"
+"strain\stm32l1xx_hal_rcc_ex.o"
+"strain\main.o"
+"strain\stm32l1xx_it.o"
+"strain\stm32l1xx_hal_msp.o"
+"strain\system_stm32l1xx.o"
+--library_type=microlib --strict --scatter "Strain\Strain.sct"
+--summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
+--info sizes --info totals --info unused --info veneers
+--list "Strain.map" -o Strain\Strain.axf
