@@ -36,7 +36,10 @@
 #include "stm32l1xx_it.h"
 
 /* USER CODE BEGIN 0 */
-volatile uint8_t button_flag = 0, ch_counter = 0;;
+extern  uint8_t button_flag;
+uint8_t ch_counter, cntr_flag;
+uint32_t arr_24[4];
+uint8_t arr[12];
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
@@ -212,32 +215,48 @@ void RCC_IRQHandler(void)
 void EXTI2_IRQHandler(void)
 {
   /* USER CODE BEGIN EXTI2_IRQn 0 */
-	uint8_t wreg = 0x50, data = 0x00, byte1 = 0x00, standby = 0xFF, sync = 0xFC, wakeup = 0x00;
+	uint8_t wreg = 0x50, data = 0x00, byte1 = 0x00, standby = 0xFF, sync = 0xFC, wakeup = 0x00, rreg = 0x10, rxData = 0x01;
   /* USER CODE END EXTI2_IRQn 0 */
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_2);
   /* USER CODE BEGIN EXTI2_IRQn 1 */
 	
-	button_flag = 1;//button is pressed, transmission starts
+	if (button_flag == 0)
+		button_flag = 1;//button is pressed, transmission starts
+	else button_flag = 0;
 	
-	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET); // CS = 0
-	//HAL_NVIC_SetPendingIRQ(EXTI4_IRQn);//DRDY Interrupt waits until ADC is configured
-	EXTI->IMR |= EXTI_IMR_MR10; //Mask on EXTI4 (Line 10), DRDY interrupt is off
-	
-	HAL_SPI_Transmit(&hspi1, &sync, 1, 0); //SYNC
-	HAL_SPI_Transmit(&hspi1, &wakeup, 1, 0); //WAKE UP
-	
-	HAL_SPI_Transmit(&hspi1, &wreg, 1, 0); //WREG DRATE first byte
-	HAL_SPI_Transmit(&hspi1, &byte1, 1, 0); //WREG DRATE second byte
-	data = 0xA1; //Data rate = 1000 SpS = 1000 Hz
-	HAL_SPI_Transmit(&hspi1, &data, 1, 0); //WREG DRATE third byte
-	
-	//HAL_NVIC_ClearPendingIRQ(EXTI4_IRQn);//DRDY Interrupt enabled 
-	EXTI->IMR &= ~(EXTI_IMR_MR10); //Mask on EXTI4 (Line 10), DRDY interrupt is on
-	
-	if (!button_flag)//if transmission ended, turn off ADC
+	if (button_flag == 1)
+	{
+		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET); // CS = 0
+		//HAL_NVIC_SetPendingIRQ(EXTI4_IRQn);//DRDY Interrupt waits until ADC is configured
+		EXTI->IMR |= EXTI_IMR_MR10; //Mask on EXTI4 (Line 10), DRDY interrupt is off
+		
+		//HAL_SPI_Transmit(&hspi1, &rst, 1, 10); //RESET
+		
+		HAL_SPI_Transmit(&hspi1, &sync, 1, 10); //SYNC
+		HAL_SPI_Transmit(&hspi1, &wakeup, 1, 10); //WAKE UP
+		
+		HAL_SPI_Transmit(&hspi1, &wreg, 1, 10); //WREG DRATE first byte
+		HAL_SPI_Transmit(&hspi1, &byte1, 1, 10); //WREG DRATE second byte
+		data = 0xA1; //Data rate = 1000 SpS = 1000 Hz
+		HAL_SPI_Transmit(&hspi1, &data, 1, 10); //WREG DRATE third byte
+		
+		HAL_SPI_Transmit(&hspi1, &rreg, 1, 10);
+		HAL_SPI_Transmit(&hspi1, &byte1, 1, 10);
+		//data = 0x00;
+		HAL_SPI_Receive(&hspi1, &rxData, 1, 10);
+		
+		HAL_SPI_Transmit(&hspi1, &wreg, 1, 10); //WREG DRATE first byte
+		HAL_SPI_Transmit(&hspi1, &byte1, 1, 10); //WREG DRATE second byte
+		data = 0x00; //Data rate = 1000 SpS = 1000 Hz
+		HAL_SPI_Transmit(&hspi1, &data, 1, 10); //WREG DRATE third byte
+		
+		//HAL_NVIC_ClearPendingIRQ(EXTI4_IRQn);//DRDY Interrupt enabled 
+		EXTI->IMR &= ~(EXTI_IMR_MR10); //Mask on EXTI4 (Line 10), DRDY interrupt is on
+	}
+	if (button_flag == 0)//if transmission ended, turn off ADC
 	{
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET); // CS = 1
-		HAL_SPI_Transmit_IT(&hspi1, &standby, 0); //STAND BY
+		HAL_SPI_Transmit_IT(&hspi1, &standby, 10); //STAND BY
 	}
   /* USER CODE END EXTI2_IRQn 1 */
 }
@@ -247,30 +266,71 @@ void EXTI2_IRQHandler(void)
 */
 void EXTI4_IRQHandler(void)
 {
+	// Отправить по UART с той же частотой последовательность байт:
+//	1й и 2й синхро байты 0x55AA + 3 байта/канал 1 + 3 байта/канал 2 + 3 байта/канал 3 + 3 байта/канал 4 = итого 14 байт
   /* USER CODE BEGIN EXTI4_IRQn 0 */
-	uint8_t wreg = 0x50, data = 0x00, byte1 = 0x00, rdata = 0x01, sync = 0xFC, wakeup = 0x00;
+	uint8_t wreg = 0x51, data = 0x00, byte1 = 0x00, rdata = 0x01, sync = 0xFC, wakeup = 0x00;
   /* USER CODE END EXTI4_IRQn 0 */
-  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_4);
+	HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_4);
   /* USER CODE BEGIN EXTI4_IRQn 1 */
 	if (button_flag) //if button was pressed
 	{
-		for (ch_counter = 0; ch_counter < 4; ch_counter++)
+			if (ch_counter < 3)
 			{
-				HAL_SPI_Transmit(&hspi1, &wreg, 1, 0); //WREG MUX channels first byte
-				HAL_SPI_Transmit(&hspi1, &byte1, 1, 0); //WREG MUX channels second byte
-				data = 0x01 + ch_counter*0x11;
-				HAL_SPI_Transmit(&hspi1, &data, 1, 0); //WREG MUX channels third byte
+				HAL_SPI_Transmit(&hspi1, &wreg, 1, 10); //WREG MUX channels first byte
+				HAL_SPI_Transmit(&hspi1, &byte1, 1, 10); //WREG MUX channels second byte
+				data = 0x23 + ch_counter*0x22;
+				HAL_SPI_Transmit(&hspi1, &data, 1, 10); //WREG MUX channels third byte
 				
-				HAL_SPI_Transmit(&hspi1, &sync, 1, 0); //SYNC
-				HAL_SPI_Transmit(&hspi1, &wakeup, 1, 0); //WAKE UP
+				HAL_SPI_Transmit(&hspi1, &sync, 1, 10); //SYNC
+				HAL_SPI_Transmit(&hspi1, &wakeup, 1, 10); //WAKE UP
 				
-				HAL_SPI_Transmit(&hspi1, &rdata, 1, 0); //RDATA
-				ch_counter++;
+				HAL_SPI_Transmit(&hspi1, &rdata, 1, 10); //RDATA
+				for(int y =0;y<1000000;y++);
+				HAL_SPI_Receive(&hspi1, &(arr[3*ch_counter]), 3, 10); //Data receive from channel ch_counter
+				
+//				HAL_SPI_Receive(&hspi1, &(arr[3*ch_counter]), 1, 10); //Data receive from channel ch_counter
+//				HAL_SPI_Receive(&hspi1, &(arr[3*ch_counter + 1]), 1, 10); //Data receive from channel ch_counter
+//				HAL_SPI_Receive(&hspi1, &(arr[3*ch_counter + 2]), 1, 10); //Data receive from channel ch_counter
+					
+				arr_24[ch_counter] += ((uint32_t)(arr[3*ch_counter]) << 16) 
+														+ ((uint32_t)(arr[3*ch_counter + 1]) << 8) 
+														+ (uint32_t)(arr[3*ch_counter + 2]);
 			}
-			if ((ch_counter + 1) == 4) //if all 4 channels transmitted data
-				button_flag = 0; //transmission ended, set flag to 0
+			else
+			{
+				HAL_SPI_Transmit(&hspi1, &wreg, 1, 10); //WREG MUX channels first byte
+				HAL_SPI_Transmit(&hspi1, &byte1, 1, 10); //WREG MUX channels second byte
+				data = 0x01;
+				HAL_SPI_Transmit(&hspi1, &data, 1, 10); //WREG MUX channels third byte
+				
+			  HAL_SPI_Transmit(&hspi1, &sync, 1, 10); //SYNC
+				HAL_SPI_Transmit(&hspi1, &wakeup, 1, 10); //WAKE UP
+				
+				HAL_SPI_Transmit(&hspi1, &rdata, 1, 10); //RDATA
+				
+				HAL_SPI_Receive(&hspi1, &(arr[3*ch_counter]), 3, 10); //Data receive from channel ch_counter
+				
+				arr_24[ch_counter] += ((uint32_t)(arr[3*ch_counter]) << 16) 
+														+ ((uint32_t)(arr[3*ch_counter + 1]) << 8) 
+														+ (uint32_t)(arr[3*ch_counter + 2]);
+				
+				arr_24[0] = 0;
+				arr_24[1] = 0;
+				arr_24[2] = 0;
+				arr_24[3] = 0;
+				
+				ch_counter = 0;
+				//cntr_flag = 1;
+			}
+			//if (cntr_flag == 0)
+				ch_counter=ch_counter+1;
+			
+			//cntr_flag = 0;
+			
 	}
   /* USER CODE END EXTI4_IRQn 1 */
+	
 }
 
 /**
@@ -279,11 +339,11 @@ void EXTI4_IRQHandler(void)
 void SPI1_IRQHandler(void)
 {
   /* USER CODE BEGIN SPI1_IRQn 0 */
-	uint8_t data[3];
+	//uint8_t data[3];
   /* USER CODE END SPI1_IRQn 0 */
   HAL_SPI_IRQHandler(&hspi1);
   /* USER CODE BEGIN SPI1_IRQn 1 */
-	HAL_SPI_Receive_IT(&hspi1, data, 3); //recieve data from ADC
+	//HAL_SPI_Receive_IT(&hspi1, data, 3); //recieve data from ADC
   /* USER CODE END SPI1_IRQn 1 */
 }
 
@@ -293,11 +353,11 @@ void SPI1_IRQHandler(void)
 void USART1_IRQHandler(void)
 {
   /* USER CODE BEGIN USART1_IRQn 0 */
-	uint8_t data[3];
+	//uint8_t data[3];
   /* USER CODE END USART1_IRQn 0 */
   HAL_UART_IRQHandler(&huart1);
   /* USER CODE BEGIN USART1_IRQn 1 */
-	HAL_UART_Receive_IT(&huart1, data, 3);
+	//HAL_UART_Receive_IT(&huart1, data, 3);
   /* USER CODE END USART1_IRQn 1 */
 }
 
