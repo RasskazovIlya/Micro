@@ -51,6 +51,10 @@ UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
+#define    DWT_CYCCNT    *(volatile unsigned long *)0xE0001004
+#define    DWT_CONTROL   *(volatile unsigned long *)0xE0001000
+#define    SCB_DEMCR     *(volatile unsigned long *)0xE000EDFC
+uint32_t count_tic = 0;
 uint8_t button_flag = 0;
 /* USER CODE END PV */
 
@@ -62,9 +66,8 @@ static void MX_SPI1_Init(void);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
-void SPI1_IRQHandler(void);
-void USART1_IRQHandler(void);
-//void EXTI2_IRQHandler(void);
+void ADC_Config(void);
+
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
@@ -103,36 +106,15 @@ int main(void)
   MX_USART1_UART_Init();
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
-	uint8_t wreg = 0x53, data = 0x00, byte1 = 0x00, standby = 0xFF, sync = 0xFC, wakeup = 0x00, rreg = 0x10, rxData = 0x01, rst = 0xFE;
 	
-	button_flag = 1;//button is pressed, transmission starts
+	if (button_flag == 0)
+		button_flag = 1;//button is pressed, transmission starts
+	else button_flag = 0;
 	
 	if (button_flag == 1)
 	{
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET); // CS = 0
-		
-		EXTI->IMR |= EXTI_IMR_MR10; //Mask on EXTI4 (Line 10), DRDY interrupt is off
-
-		//HAL_SPI_Transmit(&hspi1, &rst, 1, 10); //RESET
-
-		HAL_SPI_Transmit(&hspi1, &sync, 1, 10); //SYNC
-		HAL_SPI_Transmit(&hspi1, &wakeup, 1, 10); //WAKE UP
-
-		HAL_SPI_Transmit(&hspi1, &rreg, 1, 10); //RREG STATUS first byte
-		HAL_SPI_Transmit(&hspi1, &byte1, 1, 10); //RREG STATUS second byte
-		HAL_SPI_Receive(&hspi1, &rxData, 1, 10);  //RREG STATUS third byte
-
-		data = 0xA1; //Data rate = 1000 SpS = 1000 Hz
-		HAL_SPI_Transmit(&hspi1, &wreg, 1, 10); //WREG DRATE first byte
-		HAL_SPI_Transmit(&hspi1, &byte1, 1, 10); //WREG DRATE second byte
-		HAL_SPI_Transmit(&hspi1, &data, 1, 10); //WREG DRATE third byte
-
-		EXTI->IMR &= ~(EXTI_IMR_MR10); //Mask on EXTI4 (Line 10), DRDY interrupt is on
-	}
-	if (button_flag == 0)//if transmission ended, turn off ADC
-	{
-		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET); // CS = 1
-		HAL_SPI_Transmit_IT(&hspi1, &standby, 10); //STAND BY
+		ADC_Config();
 	}
   /* USER CODE END 2 */
 
@@ -312,7 +294,29 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void ADC_Config(void)
+{
+	uint8_t wreg = 0x53, data = 0x00, byte1 = 0x00, sync = 0xFC, wakeup = 0x00, rreg = 0x10, rxData = 0x01, rst = 0xFE;
+	
+	EXTI->IMR |= EXTI_IMR_MR10; //Mask on EXTI4 (Line 10), DRDY interrupt is off
 
+	HAL_SPI_Transmit(&hspi1, &rst, 1, 10); //RESET
+
+	HAL_SPI_Transmit(&hspi1, &sync, 1, 10); //SYNC
+	HAL_SPI_Transmit(&hspi1, &wakeup, 1, 10); //WAKE UP
+
+	HAL_SPI_Transmit(&hspi1, &rreg, 1, 10); //RREG STATUS first byte
+	HAL_SPI_Transmit(&hspi1, &byte1, 1, 10); //RREG STATUS second byte
+	
+	HAL_SPI_Receive(&hspi1, &rxData, 1, 10);  //get 7-4 STATUS bits
+
+	data = 0xA1; //Data rate = 1000 SpS = 1000 Hz
+	HAL_SPI_Transmit(&hspi1, &wreg, 1, 10); //WREG DRATE first byte
+	HAL_SPI_Transmit(&hspi1, &byte1, 1, 10); //WREG DRATE second byte
+	HAL_SPI_Transmit(&hspi1, &data, 1, 10); //WREG DRATE third byte
+
+	EXTI->IMR &= ~(EXTI_IMR_MR10); //Mask on EXTI4 (Line 10), DRDY interrupt is on
+}
 /* USER CODE END 4 */
 
 /**
