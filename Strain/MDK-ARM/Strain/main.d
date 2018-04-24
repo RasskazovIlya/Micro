@@ -7,14 +7,14 @@ strain\main.o: ../Drivers/STM32L1xx_HAL_Driver/Inc/stm32l1xx_hal_def.h
 strain\main.o: ../Drivers/CMSIS/Device/ST/STM32L1xx/Include/stm32l1xx.h
 strain\main.o: ../Drivers/CMSIS/Device/ST/STM32L1xx/Include/stm32l100xb.h
 strain\main.o: ../Drivers/CMSIS/Include/core_cm3.h
-strain\main.o: C:\Keil_v56\ARM\ARMCC\Bin\..\include\stdint.h
+strain\main.o: E:\Programs\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
 strain\main.o: ../Drivers/CMSIS/Include/core_cmInstr.h
 strain\main.o: ../Drivers/CMSIS/Include/cmsis_armcc.h
 strain\main.o: ../Drivers/CMSIS/Include/core_cmFunc.h
 strain\main.o: ../Drivers/CMSIS/Device/ST/STM32L1xx/Include/system_stm32l1xx.h
 strain\main.o: ../Drivers/STM32L1xx_HAL_Driver/Inc/stm32l1xx_hal.h
 strain\main.o: ../Drivers/STM32L1xx_HAL_Driver/Inc/Legacy/stm32_hal_legacy.h
-strain\main.o: C:\Keil_v56\ARM\ARMCC\Bin\..\include\stdio.h
+strain\main.o: E:\Programs\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
 strain\main.o: ../Drivers/STM32L1xx_HAL_Driver/Inc/stm32l1xx_hal_rcc_ex.h
 strain\main.o: ../Drivers/STM32L1xx_HAL_Driver/Inc/stm32l1xx_hal_gpio.h
 strain\main.o: ../Drivers/STM32L1xx_HAL_Driver/Inc/stm32l1xx_hal_gpio_ex.h

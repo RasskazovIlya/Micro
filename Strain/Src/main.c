@@ -41,7 +41,7 @@
 #include "stm32l1xx_hal.h"
 
 /* USER CODE BEGIN Includes */
-	  uint8_t button_flag = 0;
+
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
@@ -79,7 +79,7 @@ void EXTI2_IRQHandler(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-	uint8_t rst = 0xFE;
+
   /* USER CODE END 1 */
 
   /* MCU Configuration----------------------------------------------------------*/
@@ -103,74 +103,11 @@ int main(void)
   MX_USART1_UART_Init();
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
-//	HAL_SPI_Transmit(&hspi1, &rst, 1, 10); //RESET
-//	HAL_Delay(2000);
-//	EXTI->IMR |= EXTI_IMR_MR10; //Mask on EXTI4 (Line 10), DRDY interrupt is off
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-	
-	
-	 /* USER CODE BEGIN EXTI2_IRQn 0 */
-
-	uint8_t wreg = 0x53, data = 0x00, byte1 = 0x00, standby = 0xFF, sync = 0xFC, wakeup = 0x00, rreg = 0x10, rxData = 0x01;
-  /* USER CODE END EXTI2_IRQn 0 */
-  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_2);
-  /* USER CODE BEGIN EXTI2_IRQn 1 */
-	
-	if (button_flag == 0)
-		button_flag = 1;//button is pressed, transmission starts
-	else button_flag = 0;
-	
-	if (button_flag == 1)
-	{
-		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET); // CS = 0
-		//HAL_NVIC_SetPendingIRQ(EXTI4_IRQn);//DRDY Interrupt waits until ADC is configured
-		EXTI->IMR |= EXTI_IMR_MR10; //Mask on EXTI4 (Line 10), DRDY interrupt is off
-		
-		//HAL_SPI_Transmit(&hspi1, &rst, 1, 10); //RESET
-		
-		HAL_SPI_Transmit(&hspi1, &sync, 1, 10); //SYNC
-		HAL_SPI_Transmit(&hspi1, &wakeup, 1, 10); //WAKE UP
-		
-		HAL_SPI_Transmit(&hspi1, &wreg, 1, 10); //WREG DRATE first byte
-		HAL_SPI_Transmit(&hspi1, &byte1, 1, 10); //WREG DRATE second byte
-		data = 0xA1; //Data rate = 1000 SpS = 1000 Hz
-		HAL_SPI_Transmit(&hspi1, &data, 1, 10); //WREG DRATE third byte
-		
-		HAL_SPI_Transmit(&hspi1, &rreg, 1, 10);//STATUS
-		HAL_SPI_Transmit(&hspi1, &byte1, 1, 10);
-		//data = 0x00;
-		HAL_SPI_Receive(&hspi1, &rxData, 1, 10);
-		
-//		HAL_SPI_Transmit(&hspi1, &wreg, 1, 10); //WREG DRATE first byte
-//		HAL_SPI_Transmit(&hspi1, &byte1, 1, 10); //WREG DRATE second byte
-//		data = 0x00; //Data rate = 1000 SpS = 1000 Hz
-//		HAL_SPI_Transmit(&hspi1, &data, 1, 10); //WREG DRATE third byte
-		
-		//HAL_NVIC_ClearPendingIRQ(EXTI4_IRQn);//DRDY Interrupt enabled 
-		EXTI->IMR &= ~(EXTI_IMR_MR10); //Mask on EXTI4 (Line 10), DRDY interrupt is on
-	}
-	if (button_flag == 0)//if transmission ended, turn off ADC
-	{
-		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET); // CS = 1
-		HAL_SPI_Transmit_IT(&hspi1, &standby, 10); //STAND BY
-	}
-  /* USER CODE END EXTI2_IRQn 1 */
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
   while (1)
   {
 
@@ -246,7 +183,7 @@ static void MX_SPI1_Init(void)
   hspi1.Init.Direction = SPI_DIRECTION_2LINES;
   hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
   hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
-  hspi1.Init.CLKPhase = SPI_PHASE_2EDGE;
+  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi1.Init.NSS = SPI_NSS_SOFT;
   hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_32;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
@@ -336,10 +273,10 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI2_IRQn, 2, 0);
+  HAL_NVIC_SetPriority(EXTI2_IRQn, 3, 0);
   HAL_NVIC_EnableIRQ(EXTI2_IRQn);
 
-  HAL_NVIC_SetPriority(EXTI4_IRQn, 3, 0);
+  HAL_NVIC_SetPriority(EXTI4_IRQn, 2, 0);
   HAL_NVIC_EnableIRQ(EXTI4_IRQn);
 
 }

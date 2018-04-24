@@ -21,6 +21,6 @@
 "strain\stm32l1xx_hal_msp.o"
 "strain\system_stm32l1xx.o"
 --library_type=microlib --strict --scatter "Strain\Strain.sct"
---summary_stderr --info summarysizes --map --xref --callgraph --symbols
+--summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
 --info sizes --info totals --info unused --info veneers
 --list "Strain.map" -o Strain\Strain.axf
