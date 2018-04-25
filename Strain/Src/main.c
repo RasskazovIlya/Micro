@@ -47,6 +47,8 @@
 /* Private variables ---------------------------------------------------------*/
 SPI_HandleTypeDef hspi1;
 
+TIM_HandleTypeDef htim3;
+
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
@@ -56,6 +58,7 @@ UART_HandleTypeDef huart1;
 #define    SCB_DEMCR     *(volatile unsigned long *)0xE000EDFC
 uint32_t count_tic = 0;
 uint8_t button_flag = 0;
+uint8_t receive_arr[4];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -63,6 +66,7 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_SPI1_Init(void);
+static void MX_TIM3_Init(void);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
@@ -102,27 +106,24 @@ int main(void)
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
+	MX_TIM3_Init();
   MX_GPIO_Init();
   MX_USART1_UART_Init();
   MX_SPI1_Init();
+
   /* USER CODE BEGIN 2 */
+	HAL_TIM_Base_Start(&htim3);
+	HAL_TIM_Base_Start_IT(&htim3);
 	
-	if (button_flag == 0)
-		button_flag = 1;//button is pressed, transmission starts
-	else button_flag = 0;
-	
-	if (button_flag == 1)
-	{
-		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET); // CS = 0
-		ADC_Config();
-	}
+	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET); // CS = 0
+	ADC_Config();
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
@@ -195,7 +196,7 @@ static void MX_SPI1_Init(void)
   hspi1.Init.Direction = SPI_DIRECTION_2LINES;
   hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
   hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
-  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
+  hspi1.Init.CLKPhase = SPI_PHASE_2EDGE;
   hspi1.Init.NSS = SPI_NSS_SOFT;
   hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_32;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
@@ -203,6 +204,38 @@ static void MX_SPI1_Init(void)
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
   hspi1.Init.CRCPolynomial = 10;
   if (HAL_SPI_Init(&hspi1) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+}
+
+/* TIM3 init function */
+static void MX_TIM3_Init(void)
+{
+
+  TIM_ClockConfigTypeDef sClockSourceConfig;
+  TIM_MasterConfigTypeDef sMasterConfig;
+
+  htim3.Instance = TIM3;
+  htim3.Init.Prescaler = 23;
+  htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim3.Init.Period = 1000;
+  htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
@@ -285,10 +318,10 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI2_IRQn, 3, 0);
+  HAL_NVIC_SetPriority(EXTI2_IRQn, 4, 0);
   HAL_NVIC_EnableIRQ(EXTI2_IRQn);
 
-  HAL_NVIC_SetPriority(EXTI4_IRQn, 2, 0);
+  HAL_NVIC_SetPriority(EXTI4_IRQn, 3, 0);
   HAL_NVIC_EnableIRQ(EXTI4_IRQn);
 
 }
@@ -297,6 +330,7 @@ static void MX_GPIO_Init(void)
 void ADC_Config(void)
 {
 	uint8_t wreg = 0x53, data = 0x00, byte1 = 0x00, sync = 0xFC, wakeup = 0x00, rreg = 0x10, rxData = 0x01, rst = 0xFE;
+	uint8_t rregADCon = 0x12, adcon_data = 0x00;
 	
 	EXTI->IMR |= EXTI_IMR_MR10; //Mask on EXTI4 (Line 10), DRDY interrupt is off
 
@@ -307,10 +341,13 @@ void ADC_Config(void)
 
 	HAL_SPI_Transmit(&hspi1, &rreg, 1, 10); //RREG STATUS first byte
 	HAL_SPI_Transmit(&hspi1, &byte1, 1, 10); //RREG STATUS second byte
+	HAL_SPI_Receive(&hspi1, &rxData, 1, 10);  //get STATUS bits
 	
-	HAL_SPI_Receive(&hspi1, &rxData, 1, 10);  //get 7-4 STATUS bits
+	HAL_SPI_Transmit(&hspi1, &rregADCon, 1, 10); //RREG ADCON first byte
+	HAL_SPI_Transmit(&hspi1, &byte1, 1, 10); //RREG ADCON second byte
+	HAL_SPI_Receive(&hspi1, &adcon_data, 1, 10);  //get ADCON bits
 
-	data = 0xA1; //Data rate = 1000 SpS = 1000 Hz
+	data = 0xD0; //Data rate = 7500 SpS = 7500 Hz
 	HAL_SPI_Transmit(&hspi1, &wreg, 1, 10); //WREG DRATE first byte
 	HAL_SPI_Transmit(&hspi1, &byte1, 1, 10); //WREG DRATE second byte
 	HAL_SPI_Transmit(&hspi1, &data, 1, 10); //WREG DRATE third byte

@@ -37,7 +37,7 @@
 
 /* USER CODE BEGIN 0 */
 extern uint8_t button_flag;
-uint8_t arr[3], data;
+uint8_t arr[12], data, arr_final[12], data_sent = 0;
 int ch_counter = 0;
 uint32_t arr_24[4];
 
@@ -47,6 +47,7 @@ void ADC_Config(void);
 
 /* External variables --------------------------------------------------------*/
 extern SPI_HandleTypeDef hspi1;
+extern TIM_HandleTypeDef htim3;
 extern UART_HandleTypeDef huart1;
 
 /******************************************************************************/
@@ -215,24 +216,24 @@ void RCC_IRQHandler(void)
 /**
 * @brief This function handles EXTI line2 interrupt.
 */
-void EXTI2_IRQHandler(void) //
+void EXTI2_IRQHandler(void)
 {
   /* USER CODE BEGIN EXTI2_IRQn 0 */
-	uint8_t standby = 0xFF;
+//	uint8_t standby = 0xFF;
   /* USER CODE END EXTI2_IRQn 0 */
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_2);
   /* USER CODE BEGIN EXTI2_IRQn 1 */
-	
-	if (button_flag == 1) //button is pressed, ADC sets up
-	{
-		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET); // CS = 0
-		ADC_Config();
-	}
-	else //if transmission ended, turn off ADC
-	{
-		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET); // CS = 1
-		HAL_SPI_Transmit_IT(&hspi1, &standby, 10); //STAND BY
-	}
+//	
+//	if (button_flag == 1) //button is pressed, ADC sets up
+//	{
+//		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET); // CS = 0
+//		ADC_Config();
+//	}
+//	else //if transmission ended, turn off ADC
+//	{
+//		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET); // CS = 1
+//		HAL_SPI_Transmit_IT(&hspi1, &standby, 10); //STAND BY
+//	}
   /* USER CODE END EXTI2_IRQn 1 */
 }
 
@@ -242,12 +243,12 @@ void EXTI2_IRQHandler(void) //
 void EXTI4_IRQHandler(void)
 {
   /* USER CODE BEGIN EXTI4_IRQn 0 */
-	
+
   /* USER CODE END EXTI4_IRQn 0 */
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_4);
   /* USER CODE BEGIN EXTI4_IRQn 1 */
-	if (button_flag)
-	{
+	//if (data_sent == 0)
+	//{
 		switch (ch_counter)
 		{
 			case 0:
@@ -268,14 +269,39 @@ void EXTI4_IRQHandler(void)
 			case 3:
 			{
 				RREG(3);
-			
+				
+				for (int i = 0; i < 12; i++)
+					arr_final[i] = arr[i];
+
+				//data_sent = 1;
 				ch_counter = -1;
 				break;
 			}
 		}
 		ch_counter++;
-	}
+	//}
   /* USER CODE END EXTI4_IRQn 1 */
+}
+
+/**
+* @brief This function handles TIM3 global interrupt.
+*/
+void TIM3_IRQHandler(void)
+{
+  /* USER CODE BEGIN TIM3_IRQn 0 */
+	uint8_t sync1 = 0x55, sync2 = 0xAA;
+	
+	HAL_UART_Transmit(&huart1, &sync1, 1, 10);
+	HAL_UART_Transmit(&huart1, &sync2, 1, 10);
+	HAL_UART_Transmit(&huart1, arr_final, 12, 10);
+	
+	data_sent = 0;
+
+  /* USER CODE END TIM3_IRQn 0 */
+  HAL_TIM_IRQHandler(&htim3);
+  /* USER CODE BEGIN TIM3_IRQn 1 */
+
+  /* USER CODE END TIM3_IRQn 1 */
 }
 
 /**
@@ -323,18 +349,16 @@ void RREG(int ch_counter)
 
 	HAL_SPI_Transmit(&hspi1, &rdata, 1, 10); //RDATA
 
-	while(HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_4) == GPIO_PIN_SET){};//delay
+	while(HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_4) == GPIO_PIN_SET){}; //delay until DRDY is high
 
-	HAL_SPI_Receive(&hspi1, &(arr[0]), 3, 10); //Data receive from channel ch_counter
+	HAL_SPI_Receive(&hspi1, &(arr[3*ch_counter]), 3, 10); //Data receive from channel ch_counter
 			
-	arr_24[ch_counter] =  ((uint32_t)(arr[0]) << 16) //3x8bit -> 24bit
-											+ ((uint32_t)(arr[1]) << 8) 
-											 + (uint32_t)(arr[2]);
+	arr_24[ch_counter] =  ((uint32_t)(arr[3*ch_counter]) << 16) //3x8bit -> 24bit
+											+ ((uint32_t)(arr[3*ch_counter + 1]) << 8) 
+											 + (uint32_t)(arr[3*ch_counter + 2]);
 		
 	if ((arr_24[ch_counter] & (0x800000)) != 0) //if arr_24 value if negative
-	{
 		arr_24[ch_counter] ^= 0x800000; //then subtract 0x800000
-	}
 }
 
 /* USER CODE END 1 */
