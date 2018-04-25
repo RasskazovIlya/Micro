@@ -189,7 +189,7 @@ void SysTick_Handler(void)
   HAL_IncTick();
   HAL_SYSTICK_IRQHandler();
   /* USER CODE BEGIN SysTick_IRQn 1 */
-
+	
   /* USER CODE END SysTick_IRQn 1 */
 }
 
@@ -273,6 +273,12 @@ void EXTI4_IRQHandler(void)
 				for (int i = 0; i < 12; i++)
 					arr_final[i] = arr[i];
 
+				HAL_NVIC_DisableIRQ(EXTI4_IRQn);
+//				uint8_t sync1 = 0x55, sync2 = 0xAA;
+//	
+//	HAL_UART_Transmit(&huart1, &sync1, 1, 10);
+//	HAL_UART_Transmit(&huart1, &sync2, 1, 10);
+//	HAL_UART_Transmit(&huart1, arr_final, 12, 10);
 				//data_sent = 1;
 				ch_counter = -1;
 				break;
@@ -294,9 +300,9 @@ void TIM3_IRQHandler(void)
 	HAL_UART_Transmit(&huart1, &sync1, 1, 10);
 	HAL_UART_Transmit(&huart1, &sync2, 1, 10);
 	HAL_UART_Transmit(&huart1, arr_final, 12, 10);
-	
-	data_sent = 0;
-
+	HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_12);
+//	data_sent = 0;
+	HAL_NVIC_EnableIRQ(EXTI4_IRQn);
   /* USER CODE END TIM3_IRQn 0 */
   HAL_TIM_IRQHandler(&htim3);
   /* USER CODE BEGIN TIM3_IRQn 1 */
@@ -339,6 +345,7 @@ void RREG(int ch_counter)
 	if ((ch_counter + 1) < 4)
 		data = 0x01 + (ch_counter + 1)*0x22;
 	else data = 0x01;
+
 
 	HAL_SPI_Transmit(&hspi1, &wreg, 1, 10); //WREG MUX channels first byte
 	HAL_SPI_Transmit(&hspi1, &byte1, 1, 10); //WREG MUX channels second byte

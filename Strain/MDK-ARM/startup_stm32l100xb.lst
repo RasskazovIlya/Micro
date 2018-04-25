@@ -504,12 +504,12 @@ ARM Macro Assembler    Page 8
               00000000 
               00000000 
 Command Line: --debug --xref --diag_suppress=9931 --cpu=Cortex-M3 --apcs=interw
-ork --depend=strain\startup_stm32l100xb.d -ostrain\startup_stm32l100xb.o -I.\RT
-E\_Strain -IE:\Programs\Keil_v5\ARM\PACK\ARM\CMSIS\5.3.0\CMSIS\Include -IE:\Pro
-grams\Keil_v5\ARM\PACK\Keil\STM32L1xx_DFP\1.2.0\Device\Include --predefine="__E
-VAL SETA 1" --predefine="__MICROLIB SETA 1" --predefine="__UVISION_VERSION SETA
- 524" --predefine="_RTE_ SETA 1" --predefine="STM32L100xB SETA 1" --list=startu
-p_stm32l100xb.lst startup_stm32l100xb.s
+ork --depend=strain\startup_stm32l100xb.d -ostrain\startup_stm32l100xb.o -IC:\g
+itt\SPI_MEMS\Micro\Strain\MDK-ARM\RTE -IC:\Keil_v56\ARM\PACK\ARM\CMSIS\4.5.0\CM
+SIS\Include -IC:\Keil_v56\ARM\PACK\Keil\STM32L1xx_DFP\1.0.2\Device\Include --pr
+edefine="__MICROLIB SETA 1" --predefine="__UVISION_VERSION SETA 517" --predefin
+e="_RTE_ SETA 1" --predefine="STM32L1XX_MD SETA 1" --list=startup_stm32l100xb.l
+st startup_stm32l100xb.s
 
 
 
@@ -1234,4 +1234,4 @@ Symbol: __main
       At line 156 in file startup_stm32l100xb.s
 Comment: __main used once
 2 symbols
-409 symbols in table
+408 symbols in table

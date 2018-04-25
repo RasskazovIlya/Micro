@@ -4165,8 +4165,17 @@ uint32_t HAL_TIM_ReadCapturedValue(TIM_HandleTypeDef *htim, uint32_t Channel)
 __weak void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
   /* Prevent unused argument(s) compilation warning */
-  UNUSED(htim);
+  //UNUSED(htim);
 
+	extern UART_HandleTypeDef huart1;
+	extern uint8_t arr_final[12];
+	uint8_t sync1 = 0x55, sync2 = 0xAA;
+	
+//	HAL_UART_Transmit(&huart1, &sync1, 1, 10);
+//	HAL_UART_Transmit(&huart1, &sync2, 1, 10);
+//	HAL_UART_Transmit(&huart1, arr_final, 12, 10);
+	//HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_13);
+	//data_sent = 0;
   /* NOTE : This function Should not be modified, when the callback is needed,
             the __HAL_TIM_PeriodElapsedCallback could be implemented in the user file
    */
